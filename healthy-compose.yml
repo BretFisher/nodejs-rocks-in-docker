@@ -1,0 +1,39 @@
+version: '2.4'
+
+services:
+
+  frontend:
+    image: nginx
+    depends_on:
+      api:
+        # this requires a compose file version => 2.3 and < 3.0
+        condition: service_healthy
+        
+  api:
+    image: node:alpine
+    healthcheck:
+      test: curl -f http://127.0.0.1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+  postgres:
+    image: postgres
+    healthcheck:
+      test: pg_isready -U postgres -h 127.0.0.1
+
+  mongo:
+    image: mongo
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo localhost:27017/test --quiet
+
+  mysql:
+    image: mysql
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true

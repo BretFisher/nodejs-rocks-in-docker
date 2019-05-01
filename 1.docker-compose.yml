@@ -1,0 +1,15 @@
+version: '2.4'
+
+services:
+  node:
+    build:
+      dockerfile: 5.Dockerfile
+      context: .
+      target: dev
+    volumes:
+      - .:/app:delegated
+    ports:
+      - "3000:3000"
+
+  db:
+    image: postgres

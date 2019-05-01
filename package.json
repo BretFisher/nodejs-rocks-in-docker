@@ -1,0 +1,26 @@
+{
+  "name": "multi-stage-test",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www",
+    "dev": "../node_modules/nodemon/bin/nodemon.js ./bin/www --inspect=0.0.0.0:9229",
+    "test": "mocha --timeout 10000 --exit"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "cookie-parser": "~1.4.3",
+    "debug": "^4.1.0",
+    "express": "^4.16.4",
+    "hbs": "~4.0.1",
+    "morgan": "^1.9.1",
+    "serve-favicon": "^2.5.0"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "chai-http": "^4.2.0",
+    "eslint": "^5.16.0",
+    "mocha": "^5.2.0",
+    "nodemon": "^1.18.9"
+  }
+}
