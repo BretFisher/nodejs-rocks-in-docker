@@ -1,12 +1,7 @@
-# DockerCon 2019 Docker for Node.js Talk
+# DockerCon 2022 Talk: Node.js Rocks in Docker and DevOps
 
-Below is my talk that covers these examples.
-
-[![](http://img.youtube.com/vi/Zgx0o8QjJk4/0.jpg)](http://www.youtube.com/watch?v=Zgx0o8QjJk4 "DockerCon Talk")
-
-
-My Docker Mastery for Node.js course: 9 hours of video to help a Node.js developer use all the best Docker features. https://bretfisher.com/node
+Want more? [Get my Docker Mastery for Node.js course with a coupon](https://www.bretfisher.com/docker-mastery-for-nodejs/): 9 hours of video to help a Node.js developer use all the best Docker features.
 
 My Docker Node Good Defaults repo https://github.com/BretFisher/node-docker-good-defaults
 
-My Other Docker Resources for learning Docker, Swarm, and more. https://bretfisher.com/docker
+[My other example repositories](https://github.com/bretfisher/bretfisher) including DevOps automation, Docker, and Kubernetes stuff.
