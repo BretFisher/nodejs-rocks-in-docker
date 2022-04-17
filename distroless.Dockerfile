@@ -1,7 +1,4 @@
-###
-### base build
-###
-FROM node:16-slim as base
+FROM node:16 as base
 ENV NODE_ENV=production
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -14,24 +11,15 @@ USER node
 COPY --chown=node:node package*.json yarn*.lock ./
 RUN npm ci --only=production && npm cache clean --force
 
-###
-### dev build (no source included, assumes bind mount)
-###
 FROM base as dev
 ENV NODE_ENV=development
 ENV PATH=/app/node_modules/.bin:$PATH
-RUN npm install --only=development && npm cache clean --force
+RUN npm install && npm cache clean --force
 CMD ["nodemon", "./bin/www", "--inspect=0.0.0.0:9229"]
 
-###
-### copy in source code
-###
 FROM base as source
 COPY --chown=node:node . .
 
-###
-### combine source code and dev stage
-###
 FROM source as test
 ENV NODE_ENV=development
 ENV PATH=/app/node_modules/.bin:$PATH
@@ -40,9 +28,12 @@ RUN npx eslint .
 RUN npm test
 CMD ["npm", "run", "test"]
 
-###
-### prod stage
-###
-FROM source as prod
+FROM gcr.io/distroless/nodejs:16 as prod
+COPY --from=source --chown=1000:1000 /app /app
+COPY --from=base /usr/bin/tini /usr/bin/tini
+USER 1000
+EXPOSE 3000
+ENV NODE_ENV=production
+WORKDIR /app
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["node", "./bin/www"]
+CMD ["/nodejs/bin/node", "./bin/www"]

@@ -1,21 +1,34 @@
-FROM node:12-slim as prod
+###
+### prod build
+###
+FROM node:16-slim as base
 ENV NODE_ENV=production
-ENV TINI_VERSION v0.18.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    tini \
+    && rm -rf /var/lib/apt/lists/*
 RUN chmod +x /tini
-ENTRYPOINT ["/tini", "--"]
 EXPOSE 3000
 RUN mkdir /app && chown -R node:node /app
 WORKDIR /app
 USER node
-COPY --chown=node:node package.json package-lock*.json ./
-RUN npm ci && npm cache clean --force
+COPY --chown=node:node package*.json yarn*.lock ./
+RUN npm ci --only=production && npm cache clean --force
 COPY --chown=node:node . .
 CMD ["node", "./bin/www"]
 
-FROM prod as dev
+###
+### layer dev dependencies on top for dev or testing
+###
+FROM base as dev
 ENV NODE_ENV=development
 ENV PATH=/app/node_modules/.bin:$PATH
 RUN npm install --only=development
-# NOTE CHANGE ENTRYPOINT?
 CMD ["nodemon", "./bin/www", "--inspect=0.0.0.0:9229"]
+
+###
+### prod stage
+###
+FROM base as prod
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["node", "./bin/www"]

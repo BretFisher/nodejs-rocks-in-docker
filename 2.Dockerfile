@@ -1,9 +1,11 @@
-FROM node:12-slim
+FROM node:16-slim
 
-ENV TINI_VERSION v0.18.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
-ENTRYPOINT ["/tini", "--"]
+# replace npm in CMD with tini for better kernel signal handling
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    tini \
+    && rm -rf /var/lib/apt/lists/*
+ENTRYPOINT ["/usr/bin/tini", "--"]
 
 EXPOSE 3000
 
@@ -13,9 +15,9 @@ WORKDIR /app
 
 USER node
 
-COPY --chown=node:node package.json package-lock*.json ./
+COPY --chown=node:node package*.json yarn*.lock ./
 
-RUN npm install && npm cache clean --force
+RUN npm ci --only=production && npm cache clean --force
 
 COPY --chown=node:node . .
 
