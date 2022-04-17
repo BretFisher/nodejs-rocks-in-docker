@@ -1,5 +1,3 @@
-#cache our node version for installing later
-FROM node:16.14.2-slim as node
 FROM ubuntu:focal-20220404 as base
 
 ENV NODE_VERSION=16.14.2
@@ -21,36 +19,28 @@ RUN groupadd --gid 1000 node \
     && mkdir /app \
     && chown -R node:node /app
 
-# new way to get node, let's copy in the specific version we want from a docker image
-# this avoids depdency package installs (python3) that the deb package requires
-FROM base as node-copy
-COPY --from=node /usr/local/include/ /usr/local/include/
-COPY --from=node /usr/local/lib/ /usr/local/lib/
-COPY --from=node /usr/local/bin/ /usr/local/bin/
-RUN corepack disable && corepack enable
-
-# OR, install via hardcoded deb package url
 # get full list of packages at https://deb.nodesource.com/node_16.x/pool/main/n/nodejs/
 # for more on multi-platform builds, see https://github.com/BretFisher/multi-platform-docker-build
-FROM base as node-deb
 ARG TARGETARCH
 RUN apt-get -qq update \
   && apt-get -qq install -y ca-certificates wget --no-install-recommends \
   && wget -O nodejs.deb -qSL https://deb.nodesource.com/node_16.x/pool/main/n/nodejs/nodejs_${NODE_VERSION}-deb-1nodesource1_${TARGETARCH}.deb \
   && apt-get -qq install -y ./nodejs.deb --no-install-recommends \
+  && apt-get -qq remove wget \
   && rm nodejs.deb \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && which npm
 
-# EXPOSE 3000
+EXPOSE 3000
 
-# WORKDIR /app
+WORKDIR /app
 
-# USER node
+USER node
 
-# COPY --chown=node:node package*.json yarn*.lock ./
+COPY --chown=node:node package*.json yarn*.lock ./
 
-#RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production && npm cache clean --force
 
-# COPY --chown=node:node . .
+COPY --chown=node:node . .
 
-# CMD ["node", "./bin/www"]
+CMD ["node", "./bin/www"]

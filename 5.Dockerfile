@@ -2,8 +2,6 @@ FROM node:16-slim as base
 ENV NODE_ENV=production
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    curl \
     tini \
     && rm -rf /var/lib/apt/lists/*
 EXPOSE 3000
@@ -46,10 +44,12 @@ RUN case ${TARGETPLATFORM} in \
          "linux/arm64")  ARCH=ARM64  ;; \
          "linux/arm/v7") ARCH=ARM    ;; \
     esac \
-    && curl -o trivy.deb -SL https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-${ARCH}.deb \
+    && apt-get -qq update \
+    && apt-get -qq install -y ca-certificates wget --no-install-recommends \
+    && wget -O trivy.deb -qSL https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-${ARCH}.deb \
     && dpkg -i trivy.deb
 RUN trivy fs --severity "HIGH,CRITICAL" --ignore-unfixed --no-progress --security-checks vuln .
 
 FROM source as prod
-ENTRYPOINT ["/tini", "--"]
+ENTRYPOINT ["/usr/local/bin/tini", "--"]
 CMD ["node", "./bin/www"]
