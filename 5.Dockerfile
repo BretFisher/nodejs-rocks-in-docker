@@ -1,4 +1,4 @@
-FROM node:16-slim as base
+FROM node:16-bullseye-slim as base
 ENV NODE_ENV=production
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \

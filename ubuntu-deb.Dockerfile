@@ -1,4 +1,4 @@
-FROM ubuntu:focal-20220404 as base
+FROM ubuntu:focal-20220404
 
 ENV NODE_VERSION=16.14.2
 
