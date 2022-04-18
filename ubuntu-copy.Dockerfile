@@ -1,6 +1,6 @@
 #cache our node version for installing later
 FROM node:16.14.2-slim as node
-FROM ubuntu:focal-20220404
+FROM ubuntu:focal-20220404 as base
 
 # replace npm in CMD with tini for better kernel signal handling
 RUN apt-get update \
@@ -25,6 +25,9 @@ COPY --from=node /usr/local/include/ /usr/local/include/
 COPY --from=node /usr/local/lib/ /usr/local/lib/
 COPY --from=node /usr/local/bin/ /usr/local/bin/
 RUN corepack disable && corepack enable
+
+# you'll likely need more stages for dev/test, but here's our basic prod layer with source code
+FROM base as prod
 
 EXPOSE 3000
 

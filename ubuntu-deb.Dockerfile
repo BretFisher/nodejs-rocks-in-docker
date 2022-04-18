@@ -1,5 +1,6 @@
-FROM ubuntu:focal-20220404
+FROM ubuntu:focal-20220404 as base
 
+# version of Node.js we will install later
 ENV NODE_VERSION=16.14.2
 
 # replace npm in CMD with tini for better kernel signal handling
@@ -20,6 +21,7 @@ RUN groupadd --gid 1000 node \
     && chown -R node:node /app
 
 # get full list of packages at https://deb.nodesource.com/node_16.x/pool/main/n/nodejs/
+# this basic TARGETARCH design only works on amd64 and arm64 builds.
 # for more on multi-platform builds, see https://github.com/BretFisher/multi-platform-docker-build
 ARG TARGETARCH
 RUN apt-get -qq update \
@@ -30,6 +32,9 @@ RUN apt-get -qq update \
   && rm nodejs.deb \
   && rm -rf /var/lib/apt/lists/* \
   && which npm
+
+# you'll likely need more stages for dev/test, but here's our basic prod layer with source code
+FROM base as prod
 
 EXPOSE 3000
 
