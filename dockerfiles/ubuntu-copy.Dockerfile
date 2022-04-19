@@ -1,3 +1,6 @@
+###
+## ubuntu base with nodejs coppied in from official image, for a more secure base
+###
 #cache our node version for installing later
 FROM node:16.14.2-slim as node
 FROM ubuntu:focal-20220404 as base
@@ -26,17 +29,10 @@ RUN groupadd --gid 1000 node \
 
 # you'll likely need more stages for dev/test, but here's our basic prod layer with source code
 FROM base as prod
-
 EXPOSE 3000
-
 WORKDIR /app
-
 USER node
-
 COPY --chown=node:node package*.json yarn*.lock ./
-
 RUN npm ci --only=production && npm cache clean --force
-
 COPY --chown=node:node . .
-
 CMD ["node", "./bin/www"]

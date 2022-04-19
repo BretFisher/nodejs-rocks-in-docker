@@ -1,12 +1,14 @@
+###
+## Distroless in Prod. Multi-stage dev/test/prod with distroless
+###
 FROM gcr.io/distroless/nodejs@sha256:794e26246770ff28d285d7f800ce1982883cf4105662845689efa33f04ec4340 as distroless
 FROM node:16-bullseye-slim as base
 ENV NODE_ENV=production
-EXPOSE 3000
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     tini \
     && rm -rf /var/lib/apt/lists/*
-
+EXPOSE 3000
 RUN mkdir /app && chown -R node:node /app
 WORKDIR /app
 USER node
@@ -25,7 +27,6 @@ COPY --chown=node:node . .
 FROM source as test
 ENV NODE_ENV=development
 ENV PATH=/app/node_modules/.bin:$PATH
-# get our dev dependencies that we'll likely need for testing
 COPY --from=dev /app/node_modules /app/node_modules
 RUN npx eslint .
 RUN npm test
@@ -45,6 +46,7 @@ COPY --from=base /usr/bin/tini /usr/bin/tini
 USER 1000
 EXPOSE 3000
 ENV NODE_ENV=production
+ENV PATH=/app/node_modules/.bin:$PATH
 WORKDIR /app
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/nodejs/bin/node", "./bin/www"]

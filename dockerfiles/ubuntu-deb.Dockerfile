@@ -1,3 +1,6 @@
+###
+## ubuntu base with nodejs deb package, for a more secure base
+###
 FROM ubuntu:focal-20220404 as base
 
 # version of Node.js we will install later
@@ -35,17 +38,10 @@ RUN apt-get -qq update \
 
 # you'll likely need more stages for dev/test, but here's our basic prod layer with source code
 FROM base as prod
-
 EXPOSE 3000
-
 WORKDIR /app
-
 USER node
-
 COPY --chown=node:node package*.json yarn*.lock ./
-
 RUN npm ci --only=production && npm cache clean --force
-
 COPY --chown=node:node . .
-
 CMD ["node", "./bin/www"]

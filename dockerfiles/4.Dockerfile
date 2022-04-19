@@ -1,7 +1,7 @@
 ###
-### base build
+## Adding test stage, and avoiding source in dev
 ###
-FROM node:16-slim as base
+FROM node:16-bullseye-slim as base
 ENV NODE_ENV=production
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -14,24 +14,21 @@ USER node
 COPY --chown=node:node package*.json yarn*.lock ./
 RUN npm ci --only=production && npm cache clean --force
 
-###
-### dev build (no source included, assumes bind mount)
-###
+# dev stage (no source added, assumes bind mount)
 FROM base as dev
 ENV NODE_ENV=development
 ENV PATH=/app/node_modules/.bin:$PATH
 RUN npm install --only=development && npm cache clean --force
 CMD ["nodemon", "./bin/www", "--inspect=0.0.0.0:9229"]
 
-###
-### copy in source code
-###
+# copy in source code for test and prod stages
+# we do this in its own stage to ensure the
+# layers we test are the exact hashed layers the cache
+# uses to build prod stage
 FROM base as source
 COPY --chown=node:node . .
 
-###
-### combine source code and dev stage
-###
+# test stage: combine source code and dev stage deps
 FROM source as test
 ENV NODE_ENV=development
 ENV PATH=/app/node_modules/.bin:$PATH
@@ -40,9 +37,7 @@ RUN npx eslint .
 RUN npm test
 CMD ["npm", "run", "test"]
 
-###
 ### prod stage
-###
 FROM source as prod
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "./bin/www"]

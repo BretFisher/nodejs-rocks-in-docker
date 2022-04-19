@@ -1,3 +1,9 @@
+###
+## Adding stage to npm audit and cve scan
+## Unless you have a very basic CI/automation system, I don't recommend this
+## Most automation platforms do this better from outside the docker build
+###
+
 FROM node:16-bullseye-slim as base
 ENV NODE_ENV=production
 RUN apt-get update \
@@ -14,7 +20,7 @@ RUN npm ci --only=production && npm cache clean --force
 FROM base as dev
 ENV NODE_ENV=development
 ENV PATH=/app/node_modules/.bin:$PATH
-RUN npm install && npm cache clean --force
+RUN npm install --only=development && npm cache clean --force
 CMD ["nodemon", "./bin/www", "--inspect=0.0.0.0:9229"]
 
 FROM base as source
@@ -29,10 +35,9 @@ RUN npm test
 CMD ["npm", "run", "test"]
 
 ###
-### run audit and scan commands
+## run audit and scan commands
 ###
-FROM test as audit
-RUN 
+FROM source as audit
 RUN npm audit 
 # --audit-level critical
 ENV TRIVY_VERSION=0.26.0
@@ -48,7 +53,7 @@ RUN case ${TARGETPLATFORM} in \
     && apt-get -qq install -y ca-certificates wget --no-install-recommends \
     && wget -O trivy.deb -qSL https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-${ARCH}.deb \
     && dpkg -i trivy.deb
-RUN trivy fs --severity "HIGH,CRITICAL" --ignore-unfixed --no-progress --security-checks vuln .
+RUN trivy fs --severity "HIGH,CRITICAL" --no-progress --security-checks vuln .
 
 FROM source as prod
 ENTRYPOINT ["/usr/local/bin/tini", "--"]

@@ -13,6 +13,7 @@ Also, [My other example repositories](https://github.com/bretfisher/bretfisher) 
 ## Table of Contents<!-- omit in toc -->
 
 - [Searching for the best Node.js base image](#searching-for-the-best-nodejs-base-image)
+  - [TL;DR](#tldr)
   - [General goals of a base Node.js image](#general-goals-of-a-base-nodejs-image)
   - [Compairing options against our goals](#compairing-options-against-our-goals)
   - [Ruling out Alpine](#ruling-out-alpine)
@@ -23,12 +24,23 @@ Also, [My other example repositories](https://github.com/bretfisher/bretfisher) 
   - [My favorite custom Node.js base image](#my-favorite-custom-nodejs-base-image)
   - [Using distroless](#using-distroless)
     - [The better distroless setup](#the-better-distroless-setup)
+- [Dockerfile best practices for Node.js](#dockerfile-best-practices-for-nodejs)
+  - [Add Multi-Stage For a Single Dev-Test-Prod Dockerfile](#add-multi-stage-for-a-single-dev-test-prod-dockerfile)
+  - [Use `npm ci --only=production` first, then layer dev/test on top](#use-npm-ci---onlyproduction-first-then-layer-devtest-on-top)
 
 
 
 ## Searching for the best Node.js base image
 
 Honestly, this is one of the hardest choices you'll make at first. After supporting Node.js on VMs (and now images) for over a decade, I can say there is no perfect solution. Everything is a compromise. Often you'll be trading simplicy for increased flexibility, security, or smaller images. The farther down the rabit hole I go of "the smallest, most secure, most reliable Node.js image", the stranger the setup seems to get. I do have a recommended setup though, but to convince you, I need to explain how we get there.
+
+### TL;DR
+
+Below I list all the data and justification for my recommendations, but if you just want the result, then:
+
+- General dev/test/prod image that's easy to use: `node:16-bullseye-slim`
+- Better image that has less CVE's, build your own base with `ubuntu:20.04` and Node install (official build, image COPY, or deb package)
+- Tiny prod image that's using a supported Node.js build: `gcr.io/distroless/nodejs:16`
 
 ### General goals of a base Node.js image
 
@@ -133,6 +145,8 @@ ENTRYPOINT ["/usr/local/bin/node"]
 # rest of your stuff goes here
 ```
 
+Note, if you don't like this COPY method, and feel it's a bit hacky, you could also just download the Node.js distros from nodejs.org and copy the binaries and libraries into your image. This is what the [official Node.js slim image does](https://github.com/nodejs/docker-node/blob/6e8f32de3f620833e563e9f2b427d50055783801/16/bullseye-slim/Dockerfile), but it's a bit more complex then my example above that just copies from one official image to another.
+
 ### Using distroless
 
 I consider this a more advanced solution, because it doesn't include a shell or any utilities like package managers. A distroless image is something you COPY your app directory tree into as the last Dockerfile stage. It's meant to keep the image at an absolute minimum, and has the low CVE count to match.
@@ -165,4 +179,34 @@ COPY --from=base /usr/bin/tini /usr/bin/tini
 Remember that since it's a new image vs prior stages, you'll need to repeat any metadata that you need, including ENVs, ARGs, LABEL, EXPOSE, ENTRYPOINT, CMD, WORKDIR, or USER that you set in previous stages.
 
 A full example of using Distroless is here: [./dockerfiles/distroless.Dockerfile](./dockerfiles/distroless.Dockerfile)
+
+## Dockerfile best practices for Node.js
+
+These are "better" practices really, I'll let you decide if they are "best" for you.
+
+
+
+### Add Multi-Stage For a Single Dev-Test-Prod Dockerfile
+
+The way I approach JIT complied languages like Node.js is to have a single Dockerfile that is used for dev, test, and prod. This is a good way to keep your images small and easy to manage. However, it means that the single Dockerfile will get more complex.
+
+General Dockerfile flow of stages:
+
+1. base: all prod dependencies, no code yet
+2. dev, from base: all dev dependencies, no code yet (in dev, source code is bind-mounted anyway)
+3. source, from base: add code
+4. test, from source: copy in dev dependencies, run tests
+5. prod, from source: no change from source stage, but listed last so in case a stage isn't targeted, the builder will default to this stage
+
+`--target dev` for local development where you bind-mount into the container
+`--target test` for automated CI testing, like unit tests and npm audit
+`--target prod` for running on servers, with no devDependencies included, and no "uninstalls" or removing things to slim down
+
+Note, if you're using a special prod image like distroless, the `prod` stage is where you COPY in your app from the `source` stage.
+
+### Use `npm ci --only=production` first, then layer dev/test on top
+
+In the `base` stage above, you'll want to copy in your package files and only install production dependencies, using npm's `ci` command that will only reference the lock file for which exact versions to install. Apparently it's faster than `npm install`.
+
+Then you'll install devDependencies in a future stage, but `ci` doesn't support dev-only dependency install, so you'll need to use `npm install --only=development` in the `dev` stage.
 
