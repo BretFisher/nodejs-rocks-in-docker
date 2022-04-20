@@ -27,6 +27,7 @@ Also, [My other example repositories](https://github.com/bretfisher/bretfisher) 
 - [Dockerfile best practices for Node.js](#dockerfile-best-practices-for-nodejs)
   - [Add Multi-Stage For a Single Dev-Test-Prod Dockerfile](#add-multi-stage-for-a-single-dev-test-prod-dockerfile)
   - [Use `npm ci --only=production` first, then layer dev/test on top](#use-npm-ci---onlyproduction-first-then-layer-devtest-on-top)
+- [Add multi-architecture builds](#add-multi-architecture-builds)
 
 
 
@@ -209,4 +210,20 @@ Note, if you're using a special prod image like distroless, the `prod` stage is 
 In the `base` stage above, you'll want to copy in your package files and only install production dependencies, using npm's `ci` command that will only reference the lock file for which exact versions to install. Apparently it's faster than `npm install`.
 
 Then you'll install devDependencies in a future stage, but `ci` doesn't support dev-only dependency install, so you'll need to use `npm install --only=development` in the `dev` stage.
+
+## Add multi-architecture builds
+
+Now that Apple M1's are mainstream, and Windows arm64 laptops are slowly catching up, it's the perfect time for you to build not just x86_64 (amd64) images, but also build arm64/v8 as well.
+
+With Docker Desktop, you can build and push multiple architectures at once.
+
+```shell
+# if you haven't created a new custom builder instance, run this once:
+docker buildx create --use
+
+# now build and push an image for two architectures:
+docker buildx build -f dockerfile/5.Dockerfile --target prod --name <account/repo>:latest --platform=linux/amd64,linux/arm64 .
+```
+
+A better way is to build in automation on every pull request push, and every push to a release branch. Docker has a [GitHub Action that's great for this](https://github.com/marketplace/actions/build-and-push-docker-images).
 
