@@ -28,6 +28,7 @@ Also, [My other example repositories](https://github.com/bretfisher/bretfisher) 
   - [Add Multi-Stage For a Single Dev-Test-Prod Dockerfile](#add-multi-stage-for-a-single-dev-test-prod-dockerfile)
   - [Use `npm ci --only=production` first, then layer dev/test on top](#use-npm-ci---onlyproduction-first-then-layer-devtest-on-top)
 - [Add multi-architecture builds](#add-multi-architecture-builds)
+- [Proper Node.js shutdown](#proper-nodejs-shutdown)
 
 
 
@@ -213,7 +214,7 @@ Then you'll install devDependencies in a future stage, but `ci` doesn't support 
 
 ## Add multi-architecture builds
 
-Now that Apple M1's are mainstream, and Windows arm64 laptops are slowly catching up, it's the perfect time for you to build not just x86_64 (amd64) images, but also build arm64/v8 as well.
+Now that Apple M1's are mainstream, and Windows arm64 laptops are catching up, it's the perfect time for you to build not just x86_64 (amd64) images, but also build arm64/v8 as well, at the same time.
 
 With Docker Desktop, you can build and push multiple architectures at once.
 
@@ -227,3 +228,11 @@ docker buildx build -f dockerfile/5.Dockerfile --target prod --name <account/rep
 
 A better way is to build in automation on every pull request push, and every push to a release branch. Docker has a [GitHub Action that's great for this](https://github.com/marketplace/actions/build-and-push-docker-images).
 
+## Proper Node.js shutdown
+
+This topic deserves more importance, as many tend to assume it'll all work out when you're doing production rolling updates.
+
+But, can you be sure that, once your container runtime has ask the container to stop, that:
+
+- DB transactions are complete
+- Incoming connections have completed and gracefully closed (in )
