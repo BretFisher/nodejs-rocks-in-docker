@@ -136,7 +136,7 @@ I didn't want to do this. I prefer easy. I prefer someone *else* maintain my nod
 It basically looks like this, with a full example in [./dockerfiles/ubuntu-copy.Dockerfile](./dockerfiles/ubuntu-copy.Dockerfile):
 
 ```Dockerfile
-FROM node:16.14.2-slim as node
+FROM node:16.14.2-bullseye-slim as node
 FROM ubuntu:focal-20220404 as base
 COPY --from=node /usr/local/include/ /usr/local/include/
 COPY --from=node /usr/local/lib/ /usr/local/lib/
@@ -226,7 +226,7 @@ docker buildx create --use
 docker buildx build -f dockerfile/5.Dockerfile --target prod --name <account/repo>:latest --platform=linux/amd64,linux/arm64 .
 ```
 
-A better way is to build in automation on every pull request push, and every push to a release branch. Docker has a [GitHub Action that's great for this](https://github.com/marketplace/actions/build-and-push-docker-images).
+A better way is to build in automation on every pull request push, and every push to a release branch. Docker has a [GitHub Action that's great for this](https://github.com/marketplace/actions/build-and-push-docker-images).  **[You can also watch my talk on GitHub Actions for Docker CI/CD Workflows in that repository](https://github.com/BretFisher/allhands22)**.
 
 ## Proper Node.js shutdown
 
