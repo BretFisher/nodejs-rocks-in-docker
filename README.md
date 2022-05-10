@@ -1,4 +1,6 @@
-# DockerCon 2022 Talk: Node.js Rocks in Docker
+# Node.js Rocks in Docker
+
+> A DockerCon 2022 Talk, which is an update of my DockerCon 2019 talk "Node.js Rock in Docker and DevOps"
 
 Want more? [Get my Docker Mastery for Node.js course with a coupon](https://www.bretfisher.com/docker-mastery-for-nodejs/): 9 hours of video to help a Node.js developer use all the best Docker features.
 
@@ -25,12 +27,18 @@ Also, [My other example repositories](https://github.com/bretfisher/bretfisher) 
   - [Using distroless](#using-distroless)
     - [The better distroless setup](#the-better-distroless-setup)
 - [Dockerfile best practices for Node.js](#dockerfile-best-practices-for-nodejs)
-  - [Add Multi-Stage For a Single Dev-Test-Prod Dockerfile](#add-multi-stage-for-a-single-dev-test-prod-dockerfile)
+  - [You've got a `.dockerignore` right?](#youve-got-a-dockerignore-right)
   - [Use `npm ci --only=production` first, then layer dev/test on top](#use-npm-ci---onlyproduction-first-then-layer-devtest-on-top)
+  - [Change user to `USER node`](#change-user-to-user-node)
+  - [Proper Node.js startup](#proper-nodejs-startup)
+  - [Add Multi-Stage For a Single Dev-Test-Prod Dockerfile](#add-multi-stage-for-a-single-dev-test-prod-dockerfile)
+  - [Adding test, lint, and auditing stages](#adding-test-lint-and-auditing-stages)
 - [Add multi-architecture builds](#add-multi-architecture-builds)
 - [Proper Node.js shutdown](#proper-nodejs-shutdown)
-
-
+- [Compose v2 and easy local workflows](#compose-v2-and-easy-local-workflows)
+  - [`target: dev`](#target-dev)
+  - [Dependency startup utopia: Use `depends_on:`, with `condition: service_healthy`](#dependency-startup-utopia-use-depends_on-with-condition-service_healthy)
+  - [Node.js development in a container or not?](#nodejs-development-in-a-container-or-not)
 
 ## Searching for the best Node.js base image
 
@@ -186,18 +194,34 @@ A full example of using Distroless is here: [./dockerfiles/distroless.Dockerfile
 
 These are "better" practices really, I'll let you decide if they are "best" for you.
 
+### You've got a `.dockerignore` right?
 
+If so it should have at least `.git` and `node_modules` in it, to avoid unnecessary files in your image.
+
+### Use `npm ci --only=production` first, then layer dev/test on top
+
+In the `base` stage above, you'll want to copy in your package files and then only install production dependencies. Use npm's `ci` command that will only reference the lock file for which exact versions to install. Apparently it's faster than `npm install`.
+
+Then you'll install `devDependencies` in a future stage, but `ci` doesn't support dev-only dependency install, so you'll need to use `npm install --only=development` in the `dev` stage.
+
+### Change user to `USER node`
+
+TODO: write this
+
+### Proper Node.js startup
+
+TODO: write this
 
 ### Add Multi-Stage For a Single Dev-Test-Prod Dockerfile
 
-The way I approach JIT complied languages like Node.js is to have a single Dockerfile that is used for dev, test, and prod. This is a good way to keep your images small and easy to manage. However, it means that the single Dockerfile will get more complex.
+The way I approach JIT complied languages like Node.js is to have a single Dockerfile that is used for dev, test, and prod. This is a good way to keep your production images small and still have access to that "fat" dev and test image. However, it means that the single Dockerfile will get more complex.
 
 General Dockerfile flow of stages:
 
 1. base: all prod dependencies, no code yet
 2. dev, from base: all dev dependencies, no code yet (in dev, source code is bind-mounted anyway)
 3. source, from base: add code
-4. test, from source: copy in dev dependencies, run tests
+4. test/audit, from source: then `COPY --from=dev` for dev dependencies, then run tests. Optionally, audit and lint code (if you don't do it on git push already).
 5. prod, from source: no change from source stage, but listed last so in case a stage isn't targeted, the builder will default to this stage
 
 `--target dev` for local development where you bind-mount into the container
@@ -206,11 +230,15 @@ General Dockerfile flow of stages:
 
 Note, if you're using a special prod image like distroless, the `prod` stage is where you COPY in your app from the `source` stage.
 
-### Use `npm ci --only=production` first, then layer dev/test on top
+### Adding test, lint, and auditing stages
 
-In the `base` stage above, you'll want to copy in your package files and only install production dependencies, using npm's `ci` command that will only reference the lock file for which exact versions to install. Apparently it's faster than `npm install`.
+In my DockerCon 2019 version of this talk, I showed off even more stages for running `npm test`, `npm lint`, `npm audit` and more. I no longer recommend this "inside the build" method, but it's still possible. It just depends on if you already have an automation platform.
 
-Then you'll install devDependencies in a future stage, but `ci` doesn't support dev-only dependency install, so you'll need to use `npm install --only=development` in the `dev` stage.
+> I don't recommend running tests/lint/audit *inside* the docker build because we have better automation platforms that are easier to troubleshoot, have better logging, and likely already have tools to test/lint/audit built-in.
+
+I'm a big GitHub Actions fan (checkout [my GHA templates here](https://github.com/BretFisher/github-actions-templates)) and now use Super-Linter, Trivy/Snyk CVE scanners, and more in their own jobs, *after* the image is built. If you've got your own automation platform (CI/CD) then I think that's a better place to perform these tasks.
+
+I also find that I can parallelize those things much easier in CI/CD automation rather than in a really long Dockerfile.
 
 ## Add multi-architecture builds
 
@@ -236,3 +264,45 @@ But, can you be sure that, once your container runtime has ask the container to 
 
 - DB transactions are complete
 - Incoming connections have completed and gracefully closed (in )
+
+## Compose v2 and easy local workflows
+
+I don't always develop *in* a container, but I always start my dependencies in them. My prefered way to do that is in the `docker compose` CLI.
+
+> Notice I didn't say `docker-compose` (with the dash). That's now "old school" v1 CLI. Docker rewrote the Compose CLI in [golang](https://go.dev/) and made it a proper Docker plug-in. [See more](https://github.com/docker/compose#readme).
+
+Remember `version: 3.9` or `version: 2.7`?  Delete it. You no longer need a version line in your compose files (since 2020 at least) and the Compose CLI now uses the Compose Spec, which is version-less, and our Compose CLI supports all the 2.x and 3.x features in the same file!
+
+Checkout this repoisitories [`docker-compose.yml`](./docker-compose.yml) file for these details:
+
+### `target: dev`
+
+Now that we have a dev stage in our Dockerfile, we need to target it for local `docker compose build`.
+
+```yaml
+services:
+  node:
+    build:
+      dockerfile: dockerfiles/5.Dockerfile
+      context: .
+      target: dev
+```
+
+### Dependency startup utopia: Use `depends_on:`, with `condition: service_healthy`
+
+This is a multi-step approach. First add healthchecks to any Compose service that is a dependency. You might need them for databases, backend services, or even proxies. Then, add a dependency section to your app service like so:
+
+```yaml
+depends_on:
+  db:
+    condition: service_healthy
+```
+
+A normal `depends_on: db` only waits for the db to *start*, not for it to be ready for connections. The internet is filled with workarounds for this problem, like "waitforit" scripts. Those aren't needed anymore.
+
+If you set `condition: service_healthy`, docker will monitor that service until the healthcheck passes, and only then, start the primary service.
+
+### Node.js development in a container or not?
+
+I do both, it just depends on the project, the complexity, and if I have a similar node version installed on my host.  VS Code's [native ability to devleop inside a container](https://code.visualstudio.com/docs/remote/containers) is dope and I recommend you give it a shot!
+
