@@ -22,12 +22,11 @@ jobs:
     ### https://docs.github.com/en/actions/learn-github-actions/reusing-workflows
     ### you can also call workflows from inside the same repo via file path
 
-    #FIXME: customize uri to point to your own forked super-linter repository
     uses: bretfisher/super-linter-workflow/.github/workflows/reusable-super-linter.yaml@main
     
     ### Optional settings examples
     
-    # with:
+    with:
       ### For a DevOps-focused repository. Prevents some code-language linters from running
       ### defaults to false
       devops-only: true
