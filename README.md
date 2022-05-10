@@ -33,7 +33,8 @@ Also, here's [my other example repositories](https://github.com/bretfisher/bretf
   - [You've got a `.dockerignore` right?](#youve-got-a-dockerignore-right)
   - [Use `npm ci --only=production` first, then layer dev/test on top](#use-npm-ci---onlyproduction-first-then-layer-devtest-on-top)
   - [Change user to `USER node`](#change-user-to-user-node)
-  - [Proper Node.js startup](#proper-nodejs-startup)
+  - [Proper Node.js startup: tini](#proper-nodejs-startup-tini)
+  - [Avoid `node` process managers (npm, yarn, nodemon, forever, pm2)](#avoid-node-process-managers-npm-yarn-nodemon-forever-pm2)
   - [Add Multi-Stage For a Single Dev-Test-Prod Dockerfile](#add-multi-stage-for-a-single-dev-test-prod-dockerfile)
   - [Adding test, lint, and auditing stages](#adding-test-lint-and-auditing-stages)
 - [Add multi-architecture builds](#add-multi-architecture-builds)
@@ -42,6 +43,7 @@ Also, here's [my other example repositories](https://github.com/bretfisher/bretf
   - [`target: dev`](#target-dev)
   - [Dependency startup utopia: Use `depends_on:`, with `condition: service_healthy`](#dependency-startup-utopia-use-depends_on-with-condition-service_healthy)
   - [Node.js development in a container or not?](#nodejs-development-in-a-container-or-not)
+- [Production Checklist](#production-checklist)
 
 ## Searching for the best Node.js base image
 
@@ -226,11 +228,19 @@ COPY --chown=node:node . .
 
 ProTip: If you need to run commands/shells in the container as root, add `--user=root` to your Docker commands.
 
-### Proper Node.js startup
+### Proper Node.js startup: tini
 
 When I'm writing production-quality Dockerfiles for programming languages, I usually add `tini` to the ENTRYPOINT. The [tini project](https://github.com/krallin/tini) is a simple, lightweight, and portable init process that can be used to start a Node.js process, and more importantly, it properly handles Linux Kernel signals, and reaps any [zombie processes](https://en.wikipedia.org/wiki/Zombie_process) that get lost in the suffle.
 
 See *Proper Node.js shutdown* below for the other half of this process up/down problem.
+
+### Avoid `node` process managers (npm, yarn, nodemon, forever, pm2)
+
+`yarn`, `npm`, `nodemon`, `forever`, or `pm2` are not needed for launching the `node` binary.
+
+- They add unnecessary complexity.
+- They often don't listen for Linux signals (`tini` can help, but still.
+- We don't want an external process launching multiple `node` processes, that's what docker/containerd/cri-o are for. If you need more replicas, use your orchestrator to launch more containers.
 
 ### Add Multi-Stage For a Single Dev-Test-Prod Dockerfile
 
@@ -282,10 +292,22 @@ This topic deserves more importance, as many tend to assume it'll all work out w
 
 But, can you be sure that, once your container runtime has ask the container to stop, that:
 
-- DB transactions are complete
-- Incoming connections have completed and *gracefully* closed (TCP FIN Packet)
+- DB transactions are complete.
+- Any long-running functions are complete, like file upload/download, loops, PDF generation, etc.
+- Long-polling connections are properly closed.
+- Incoming connections have completed and *gracefully* closed (TCP FIN Packet) so they can re-connect to a new container.
 
-TODO: write this
+> ⚠️ The more you dig into this problem, the more you may realize you're providing a poor user experience during container reboots and replacements.
+
+The end goal is if you have two replicas of a container running with a service/LB in front of it, and gracefully shutdown one of the containers, that clients/users never notice. The container will wait for processing to complete (including long-polling, file upload/download, etc.) and only then will it shut down.
+
+Also note that Docker & Kubernetes can get in the way if not configured in the runtime config. Within 15-30s, both will kill the container unless you override that default. Some may even need *60 minutes* as a grace peroid.
+
+`docker run --stop-timeout` in seconds
+
+In Kubernetes, look for `terminationGracePeriodSeconds`
+
+Projects like [http-terminator](https://github.com/gajus/http-terminator) can help you solve this.
 
 ## Compose v2 and easy local workflows
 
@@ -326,4 +348,22 @@ If you set `condition: service_healthy`, docker will monitor that service until 
 
 ### Node.js development in a container or not?
 
-I do both, it just depends on the project, the complexity, and if I have a similar node version installed on my host.  VS Code's [native ability to devleop inside a container](https://code.visualstudio.com/docs/remote/containers) is dope and I recommend you give it a shot!  It can use your existing Dockerfile and docker-compose.yml to more seamlessly develop in a container.
+I do both, it just depends on the project, the complexity, and if I have a similar node version installed on my host.  VS Code's [native ability to devleop inside a container](https://code.visualstudio.com/docs/remote/containers) is dope and I recommend you give it a shot!  It can use your existing Dockerfile and docker-compose.yml to more seamlessly develop in a container, and may be easier/faster than do-it-yourself setups.
+
+## Production Checklist
+
+Based on all the tips above. This list, in order of priority (highest pri first), is my personal checklist for Node.js apps in production (or any JIT langauge like Ruby, Python, PHP, etc.)
+
+1. Slim base image with 0 high/crit CVEs via Trivy/Snyk scan.
+2. Running as non-root user (`USER node`).
+3. `npm audit` inside image during CI has 0 vunerabilities.
+4. Only production dependencies (`npm ci --only=production`).
+5. Tini init is used for startup *and* Healthchecks/probes.
+6. `npm`, `nodemon`, `forever`, or `pm2` are not used. App launches `node` directly via `tini`.
+7. At least a basic healthcheck/liveness probe is used. `HEALTCHECK` is good for documentation as well as Docker/Compose/Swarm healthchecks.
+8. The app code listens for Linux signals (`SIGTERM`, `SIGINT`) and gracefully shuts down.
+9. If an HTTP-based app, use a better shutdown strategy in code to ensure connections are tracked, and closed gracefully during container/pod updates (TCP FIN, etc.)
+10. Even numbered Node.js major release is used.
+11. `.dockerignore` prevents `.git`, the host `node_modules`, and unwatned files.
+12. `EXPOSE` has the listening ports shown.
+13. Multi-platform builds are enabled for running on amd64 or arm64 when necessary.
