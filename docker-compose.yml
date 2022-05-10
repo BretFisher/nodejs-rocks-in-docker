@@ -32,4 +32,3 @@ services:
     healthcheck:
       test: /healthchecks/postgres-healthcheck
       interval: "5s"
-
