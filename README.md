@@ -207,11 +207,28 @@ Then you'll install `devDependencies` in a future stage, but `ci` doesn't suppor
 
 ### Change user to `USER node`
 
-TODO: write this
+There's (almost) no reason to run as root in a Node.js container. The offical node images already have this user created in the base image, so to switch your user in the Dockerfile, use the `USER node` directive.
+
+You'll likely need more then that though. You'll want all files you copy in, and the directory you use `WORKDIR` in, to be owned by `node`.
+
+This smallest Dockerfile would have lines in it like this, for setting directory permissions, setting file permissions during any `COPY` commands, etc:
+
+```Dockerfile
+RUN mkdir /app && chown -R node:node /app
+WORKDIR /app
+USER node
+COPY --chown=node:node package*.json yarn*.lock ./
+RUN npm ci --only=production && npm cache clean --force
+COPY --chown=node:node . .
+```
+
+ProTip: If you need to run commands/shells in the container as root, add `--user=root` to your Docker commands.
 
 ### Proper Node.js startup
 
-TODO: write this
+When I'm writing production-quality Dockerfiles for programming languages, I usually add `tini` to the ENTRYPOINT. The [tini project](https://github.com/krallin/tini) is a simple, lightweight, and portable init process that can be used to start a Node.js process, and more importantly, it properly handles Linux Kernel signals, and reaps any [zombie processes](https://en.wikipedia.org/wiki/Zombie_process) that get lost in the suffle.
+
+See *Proper Node.js shutdown* below for the other half of this process up/down problem.
 
 ### Add Multi-Stage For a Single Dev-Test-Prod Dockerfile
 
@@ -264,7 +281,7 @@ This topic deserves more importance, as many tend to assume it'll all work out w
 But, can you be sure that, once your container runtime has ask the container to stop, that:
 
 - DB transactions are complete
-- Incoming connections have completed and gracefully closed (in )
+- Incoming connections have completed and *gracefully* closed (TCP FIN Packet)
 
 TODO: write this
 
