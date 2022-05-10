@@ -1,23 +1,23 @@
 # Node.js Rocks in Docker
 
-> A DockerCon 2022 Talk, which is an update of my DockerCon 2019 talk "Node.js Rock in Docker and DevOps"
+> My DockerCon 2022 Talk, which is an update of my DockerCon 2019 talk "Node.js Rocks in Docker and DevOps"
 
 Want more? [Get my Docker Mastery for Node.js course with a coupon](https://www.bretfisher.com/docker-mastery-for-nodejs/): 9 hours of video to help a Node.js developer use all the best Docker features.
 
-Also, [My other example repositories](https://github.com/bretfisher/bretfisher) including DevOps automation, Docker, and Kubernetes stuff.
+Also, here's [my other example repositories](https://github.com/bretfisher/bretfisher) including DevOps automation, Docker, and Kubernetes stuff.
 
 ## Who is this for?<!-- omit in toc -->
 
-**- You know some Node.js**
-**- You know some Docker**
-**- You want more Node+Docker awesomesauce**
+- **You know some Node.js**
+- **You know some Docker**
+- **You want more Node+Docker awesomesauce**
   
 ## Table of Contents<!-- omit in toc -->
 
 - [Searching for the best Node.js base image](#searching-for-the-best-nodejs-base-image)
   - [TL;DR](#tldr)
-  - [General goals of a base Node.js image](#general-goals-of-a-base-nodejs-image)
-  - [Compairing options against our goals](#compairing-options-against-our-goals)
+  - [General goals of a Node.js image](#general-goals-of-a-nodejs-image)
+  - [Node.js base image comparison stats](#nodejs-base-image-comparison-stats)
   - [Ruling out Alpine](#ruling-out-alpine)
   - [Ruling out `node:latest` or `node:lts`](#ruling-out-nodelatest-or-nodelts)
   - [Ruling out `node:*-slim`](#ruling-out-node-slim)
@@ -52,30 +52,21 @@ Below I list all the data and justification for my recommendations, but if you j
 - Better image that has less CVE's, build your own base with `ubuntu:20.04` and Node install (official build, image COPY, or deb package)
 - Tiny prod image that's using a supported Node.js build: `gcr.io/distroless/nodejs:16`
 
-### General goals of a base Node.js image
+### General goals of a Node.js image
 
-In order of priority, for the final production stage image:
+My goals/requirements, in order of priority, for the final production stage image:
 
 - Tier 1 support by the Node.js team.
 - Minimal CVEs. No HIGH or CRITICAL vulnerabilities.
 - Version (even to patch level) is controlled, to ensure reproducable builds/tests.
-- Doesn't container unneeded packages, like Python or build tools.
-- Under 200MB image size.
+- Doesn't contain unneeded packages, like Python or build tools.
+- Under 200MB image size (without code or node_modules).
 
-### Compairing options against our goals
+### Node.js base image comparison stats
 
-Here's a compairison of the resonable options I've come up with. Most I've tried in real workloads at some point. Some are shown as base images without Node.js just so you can see their CVE count (as of April 2022) and realize their a non-starter. Others are a combo of a base image with Node.js installed (in various ways). Lastly, remember that in multi-stage setups, we can always have one base for dev/build environments and another for test/production.
+Here's a compairison of the resonable options I've come up with. Most I've tried in real workloads at some point. Some are shown as base images without Node.js just so you can see their CVE count (as of April 2022) and realize they're a non-starter. Others are a combo of a base image with Node.js installed (in various ways). Lastly, remember that in multi-stage setups, we can always have one base for dev/build/test environments and another for production.
 
 Important values that distinguish one image from others are bolded.
-
-Highlights of note:
-
-- While Alpine isn't showing CVEs, it's not the smallest image, nor is it a supported [Tier 1](https://github.com/nodejs/node/blob/master/BUILDING.md#platform-list) build by the Node.js team. **It's one of the reasons I don't recommend Alpine-based Node.js images**.
-- Note my use of `node:16-bullseye-slim`. Then notice the better CVE count of it vs. `node:16-slim`. **Node.js Debian images don't change the Debian version after a major Node version is released.** If you want to combine the latest Node.js LTS with the current Debian stable, you'll need to use a different tag. In this example, Debian 11 (bullseye) is newer than the default `node:16` Debian 10 (buster) release. Why isn't Debian updated? For stability of that Node.js major version. Once you start using a specific Node.js major release (say 16.x), you can expect the underlying Debian major version to not change for any future Node.js 16.x release of official images. Once Debian 11 (bullseye) came out, you would have to change your image tag to specify that Debian version if you wanted to change the Debian base during a Node.js major release cycle. If you don't pin all apt packages, then changing the underlying Debian version to a new major release may cause major package updates that would break your app.
-- `debian:11-slim` saves 44MB and 2k files, but **Debian slim has the same CVE count as the default `debian:latest` image**. Too bad.
-- **Ubuntu is historially faster to fix CVEs in its LTS than Debian.** You'll notice much lower CVE counts in Ubuntu-based images. It's my go to default base for [JIT-based](https://en.wikipedia.org/wiki/Just-in-time_compilation) programming languages (Node.js, Python, Ruby, etc.)
-- Google's [Distroless image](https://github.com/GoogleContainerTools/distroless) only has 1% of the file count compared to the others, yet it still similar CVE numbers to Ubuntu, and only saves 60MB in size. **Is distroless really worth the added complexity?**
-- CVE counts are a moving target, so I don't make long-term image decisions base on a small CVE count difference (under 10), but we see a trend here. The High+Critical is the most important, and these images options tend to have under twenty, or **hundreds**. You can't reason with hundreds. It's a non-starter. It's very rare that anyone's going to analize that many and determine your true risk. With under twenty, someone can evaluate each for the "true risk" in that use case (e.g. is the vunerable file even executied). Anything that's "zero CVEs" won't always be zero.
 
 | Image Name                             | Tier 1 Support | CVEs (High+Crit)/TOTAL | Node Version Control | Image Size (Files) | Min Pkgs |
 | -------------------------------------- | -------------- | ---------------------- | -------------------- | ------------------ | -------- |
@@ -93,7 +84,17 @@ Highlights of note:
 | **gcr.io/distroless/nodejs:16**        | Yes            | **1/12**               | **No**[^2]           | **108MB (2,120)**  | **Yes**  |
 
 [^1]: While Alpine-based images can be version themselves, apk packages you need inside them can't be relelablly versioned over time (eventually packages are pulled from apk and builds will fail.)
+
 [^2]: Distroless can only be pinned (in image tag) to the major Node.js version. That is disapointing. You can technically use the sha256 hash of any image to pin for determinstic builds, but the process for doing so (and determining what hashes are which verions later) is far from ideal.
+
+Highlights of note:
+
+- While Alpine isn't showing CVEs, it's not the smallest image, nor is it a supported [Tier 1](https://github.com/nodejs/node/blob/master/BUILDING.md#platform-list) build by the Node.js team. **It's one of the reasons I don't recommend Alpine-based Node.js images**.
+- Note my use of `node:16-bullseye-slim`. Then notice the better CVE count of it vs. `node:16-slim`. **Node.js Debian images don't change the Debian version after a major Node version is released.** If you want to combine the latest Node.js LTS with the current Debian stable, you'll need to use a different tag. In this example, Debian 11 (bullseye) is newer than the default `node:16` Debian 10 (buster) release. Why isn't Debian updated? For stability of that Node.js major version. Once you start using a specific Node.js major release (say 16.x), you can expect the underlying Debian major version to not change for any future Node.js 16.x release of official images. Once Debian 11 (bullseye) came out, you would have to change your image tag to specify that Debian version if you wanted to change the Debian base during a Node.js major release cycle. If you don't pin all apt packages, then changing the underlying Debian version to a new major release may cause major package updates that would break your app.
+- `debian:11-slim` saves 44MB and 2k files, but **Debian slim has the same CVE count as the default `debian:latest` image**. Too bad.
+- **Ubuntu is historially faster to fix CVEs in its LTS than Debian.** You'll notice much lower CVE counts in Ubuntu-based images. It's my go to default base for [JIT-based](https://en.wikipedia.org/wiki/Just-in-time_compilation) programming languages (Node.js, Python, Ruby, etc.)
+- Google's [Distroless image](https://github.com/GoogleContainerTools/distroless) only has 1% of the file count compared to the others, yet it still similar CVE numbers to Ubuntu, and only saves 60MB in size. **Is distroless really worth the added complexity?**
+- CVE counts are a moving target, so I don't make long-term image decisions base on a small CVE count difference (under 10), but we see a trend here. The High+Critical is the most important, and these images options tend to have under twenty, or **hundreds**. You can't reason with hundreds. It's a non-starter. It's very rare that anyone's going to analize that many and determine your true risk. With under twenty, someone can evaluate each for the "true risk" in that use case (e.g. is the vunerable file even executied). Anything that's "zero CVEs" won't always be zero.
 
 ### Ruling out Alpine
 
@@ -265,6 +266,8 @@ But, can you be sure that, once your container runtime has ask the container to 
 - DB transactions are complete
 - Incoming connections have completed and gracefully closed (in )
 
+TODO: write this
+
 ## Compose v2 and easy local workflows
 
 I don't always develop *in* a container, but I always start my dependencies in them. My prefered way to do that is in the `docker compose` CLI.
@@ -304,5 +307,4 @@ If you set `condition: service_healthy`, docker will monitor that service until 
 
 ### Node.js development in a container or not?
 
-I do both, it just depends on the project, the complexity, and if I have a similar node version installed on my host.  VS Code's [native ability to devleop inside a container](https://code.visualstudio.com/docs/remote/containers) is dope and I recommend you give it a shot!
-
+I do both, it just depends on the project, the complexity, and if I have a similar node version installed on my host.  VS Code's [native ability to devleop inside a container](https://code.visualstudio.com/docs/remote/containers) is dope and I recommend you give it a shot!  It can use your existing Dockerfile and docker-compose.yml to more seamlessly develop in a container.
