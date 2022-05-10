@@ -1,8 +1,35 @@
-version: '2.4'
+###
+## for local dev, wait for db to pass healthcheck before we start node
+## also, build custom dockerfile to the dev stage
+###
+
+# version key is DEPRECATED
+# v2 and v3 features now combined in compose CLI
 
 services:
   node:
-    build: .
+    build:
+      dockerfile: dockerfiles/5.Dockerfile
+      context: .
+      # build to the stage named dev
+      target: dev
+    volumes:
+      - .:/app
+    ports:
+      # use docker compose ps to see which host port is used
+      - "3000"
+    depends_on:
+      db:
+        condition: service_healthy
 
   db:
     image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./healthchecks:/healthchecks
+    healthcheck:
+      test: /healthchecks/postgres-healthcheck
+      interval: "5s"
+
