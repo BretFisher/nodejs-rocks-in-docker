@@ -23,17 +23,17 @@ Also, here's [my other example repositories](https://github.com/bretfisher/bretf
   - [Comparison highlights](#comparison-highlights)
   - [Ruling out Alpine](#ruling-out-alpine)
   - [Ruling out `node:latest` or `node:lts`](#ruling-out-nodelatest-or-nodelts)
-  - [Ruling out `node:*-slim`](#ruling-out-node-slim)
-  - [Building a custom Node.js image based on ubuntu](#building-a-custom-nodejs-image-based-on-ubuntu)
+  - [Ruling out `debian:*-slim` as a custom base](#ruling-out-debian-slim-as-a-custom-base)
+  - [Building a custom Node.js image based on Ubuntu](#building-a-custom-nodejs-image-based-on-ubuntu)
     - [Ruling out NodeSource deb packages](#ruling-out-nodesource-deb-packages)
-  - [My favorite custom Node.js base image](#my-favorite-custom-nodejs-base-image)
+  - [👉 My favorite custom Node.js base image](#-my-favorite-custom-nodejs-base-image)
   - [Using distroless](#using-distroless)
-    - [The better distroless setup](#the-better-distroless-setup)
+  - [The better distroless setup?](#the-better-distroless-setup)
 - [Dockerfile best practices for Node.js](#dockerfile-best-practices-for-nodejs)
   - [You've got a `.dockerignore` right?](#youve-got-a-dockerignore-right)
   - [Use `npm ci --only=production` first, then layer dev/test on top](#use-npm-ci---onlyproduction-first-then-layer-devtest-on-top)
   - [Change user to `USER node`](#change-user-to-user-node)
-  - [Proper Node.js startup: tini](#proper-nodejs-startup-tini)
+  - [Proper Node.js startup: `tini`](#proper-nodejs-startup-tini)
   - [Avoid `node` process managers (npm, yarn, nodemon, forever, pm2)](#avoid-node-process-managers-npm-yarn-nodemon-forever-pm2)
   - [Add Multi-Stage For a Single Dev-Test-Prod Dockerfile](#add-multi-stage-for-a-single-dev-test-prod-dockerfile)
   - [Adding test, lint, and auditing stages](#adding-test-lint-and-auditing-stages)
@@ -61,7 +61,7 @@ Below I list all the data and justification for my recommendations, but if you j
 
 My goals/requirements, in order of priority, for the final production stage image:
 
-- Tier 1 support by the Node.js team.
+- [Tier 1](https://github.com/nodejs/node/blob/master/BUILDING.md#platform-list) support by the Node.js team.
 - Minimal CVEs. No HIGH or CRITICAL vulnerabilities.
 - Version (even to patch level) is controlled, to ensure reproducable builds/tests.
 - Doesn't contain unneeded packages, like Python or build tools.
@@ -95,11 +95,11 @@ Important values that distinguish one image from others are bolded.
 ### Comparison highlights
 
 - While Alpine isn't showing CVEs, it's not the smallest image, nor is it a supported [Tier 1](https://github.com/nodejs/node/blob/master/BUILDING.md#platform-list) build by the Node.js team. **Those are just a few of the reasons I don't recommend Alpine-based Node.js images** (see below).
-- Note my use of `node:16-bullseye-slim`. Then notice the better CVE count of it vs. `node:16-slim`. **Node.js Debian images don't change the Debian version after a major Node version is released.** If you want to combine the latest Node.js LTS with the current Debian stable, you'll need to use a different tag. In this example, Debian 11 (bullseye) is newer than the default `node:16` Debian 10 (buster) release. Why isn't Debian updated? For stability of that Node.js major version. Once you start using a specific Node.js major release (say 16.x), you can expect the underlying Debian major version to not change for any future Node.js 16.x release of official images. Once Debian 11 (bullseye) came out, you would have to change your image tag to specify that Debian version if you wanted to change the Debian base during a Node.js major release cycle. If you don't pin all apt packages, then changing the underlying Debian version to a new major release may cause major package updates that would break your app.
+- Note my use of `node:16-bullseye-slim`. Then notice the better CVE count of it vs. `node:16-slim`. **Node.js Debian images don't change the Debian version after a major Node version is released.** If you want to combine the latest Node.js LTS with the current Debian stable, you'll need to use a different tag. In this example, Debian 11 (bullseye) is newer than the default `node:16` Debian 10 (buster) release. Why isn't Debian updated? For stability of that Node.js major version. Once you start using a specific Node.js major release (say 16.x), you can expect the underlying Debian major version to not change for any future Node.js 16.x release of official images. Once Debian 11 (bullseye) came out, you would have to change your image tag to specify that Debian version if you wanted to change the Debian base during a Node.js major release cycle. Changing the underlying Debian version to a new major release may cause major apt package changes.
 - `debian:11-slim` saves 44MB and 2k files, but **Debian slim has the same CVE count as the default `debian:latest` image**. Too bad.
 - **Ubuntu is historially faster to fix CVEs in its LTS than Debian.** You'll notice much lower CVE counts in Ubuntu-based images. It's my go to default base for [JIT-based](https://en.wikipedia.org/wiki/Just-in-time_compilation) programming languages (Node.js, Python, Ruby, etc.)
 - Google's [Distroless image](https://github.com/GoogleContainerTools/distroless) only has 1% of the file count compared to the others, yet it still similar CVE numbers to Ubuntu, and only saves 60MB in size. **Is distroless really worth the added complexity?**
-- CVE counts are a moving target, so I don't make long-term image decisions base on a small CVE count difference (under 10), but we see a trend here. The High+Critical is the most important, and these images options tend to have under twenty, or **hundreds**. You can't reason with hundreds. It's a non-starter. It's very rare that anyone's going to analize that many and determine your true risk. With under twenty, someone can evaluate each for the "true risk" in that use case (e.g. is the vunerable file even executied). Anything that's "zero CVEs" won't always be zero.
+- CVE counts are a moving target, so I don't make long-term image decisions base on a small CVE count difference (under 10), but we see a trend here. The High+Critical count are the most important, and these images options tend to have under twenty, or the other side of the spectrium, **hundreds**. You can't reason with hundreds. It's a non-starter. It's very rare that anyone's going to analize that many and determine your true risk. With under twenty, someone can evaluate each for the "true risk" in that use case (e.g. is the vunerable file even executied). Anything that's "zero CVEs" today won't always be zero.
 
 ### Ruling out Alpine
 
@@ -115,21 +115,25 @@ Sorry Alpine fans. It's still a great OS and I still use the `alpine` official i
 
 ### Ruling out `node:latest` or `node:lts`
 
-It's convient to use the standard official images. I prefer the lts options (20.04,22.04) over the latest variants (21.10). However, these non-slim variants were foused on ease of use for new Docker users, and are not as good for production. They include a ton of packages that you'll likely never need in production, like imagemagick, compilers, mysql client, even svn/mercurial. That's why they have hundreds of high and critical CVE's. That's a non-starter for production.
+It's convient to use the standard official images. However, these non-slim variants were foused on ease of use for new Docker users, and are not as good for production. They include a ton of packages that you'll likely never need in production, like imagemagick, compilers, mysql client, even svn/mercurial. That's why they have hundreds of high and critical CVE's. That's a non-starter for production.
 
-Here's another argument against them that I see with existing (brownfield) apps that are convered to Docker builds. If you start on these non-slim official node images, you may not realize the *true* dependencies of your app, because it turns out you needed more then just the nodejs package, and if you ever switch to a different base image or package manager, you'll find that your app doesn't work, because it needed some apt/yum/apk package that was in the bloated default base images, but aren't included in in slime/alpine/distroless images.
+Here's another argument against them that I see with existing (brownfield) apps that are migrated to Docker-based builds:
+
+> ⚠️ If you start on these non-slim official node images, you may not realize the *true* dependencies of your app, because it turns out you needed more then just the nodejs package, and if you ever switch to a different base image or package manager, you'll find that your app doesn't work, because it needed some apt/yum package that was in the bloated default base images, but aren't included in in slim/alpine/distroless images.
 
 You might think "who doesn't know their exact system depdenencies?". With 10-year old apps, I see it often that teams don't have a true list of everything they need. They might know that on CentOS 7.3 they need x/y/z, but if they swap to a different base, it turns out there was a library included in CentOS for convicene that isn't in that new base.
 
-Docker slim images really help ensure you have an accurate list of apt/yum/apk dependencies.
+Docker slim images really help ensure you have an accurate list of apt/yum dependencies.
 
-### Ruling out `node:*-slim`
+### Ruling out `debian:*-slim` as a custom base
 
 `debian:11-slim` saves 44MB and 2k files, but **Debian slim has the same CVE count as the default `debian:latest` image**. Too bad.
 
-### Building a custom Node.js image based on ubuntu
+### Building a custom Node.js image based on Ubuntu
 
-One negative here. Most CVE scanners use package lists to determine if a image or system is vunerable. When we COPY in binaries and libraries, those aren't tracked by package systems, so they won't show up on CVE scans. The workaround is to also scan the FROM image that you COPY Node.js from.
+The `ubuntu:20.04` image is a great, low-CVE, small image.  I know multiple teams that use it as their base for *everything*, and make their own custom base images on top of it.
+
+How you get Node.js into that image is the subject of this debate. You can't just `apt update && apt install nodejs`, because you'll get a wickedly old version (v10 at last check). Here's two other ways to install Node.js in Ubuntu's base image.
 
 #### Ruling out NodeSource deb packages
 
@@ -138,22 +142,18 @@ NodeSource provides the official Debian (apt) packages, but they have issues and
 1. The package repositories drop off old versions, so you can't pin a Node.js version. A workaround is to manually download the .deb file and "pin" to its URL. This isn't a big deal, but it is a downside to adoption. People either have to discover this through trial and error, or are already apt-pros.
 2. It requires Python3 to isntall Node.js. Um, what?  Yes. Every time you use a NodeSource apt package, you are adding Python 3.x minimal and any potential CVEs that come with them. I've figured out it's 20MB of additional stuff.
 
-### My favorite custom Node.js base image
+### 👉 My favorite custom Node.js base image
 
-I didn't want to do this. I prefer easy. I prefer someone *else* maintain my node base image, but here we are. The other options aren't great and given that this has worked so well for me, I'm now recommending and using this with others.  Tell me what you think in this GitHub repositories Discussions tab, on [Twitter](https://twitter.com/bretfisher), or in my [DevOps Discord Server](https://devops.fan).
+I didn't want to do this. I prefer easy. I prefer someone *else* maintain my Node.js base image, but here we are. The other options aren't great and given that this has worked so well for me, I'm now recommending and using this with others.  Tell me what you think in this GitHub repositories Discussions tab, on [Twitter](https://twitter.com/bretfisher), or in my [DevOps Discord Server](https://devops.fan).
 
-**The smallest image, with the least CVEs, and a shell + package manager included:**
-
-**Use a stock ubuntu LTS image, and COPY in the Node.js binaries and libraries from the official Node.js slim image.**
+> to get one of the smallest images, with the least CVEs, and a shell + package manager included: Use a stock ubuntu LTS image, and `COPY` in the Node.js binaries and libraries from the official Node.js slim image.
 
 It basically looks like this, with a full example in [./dockerfiles/ubuntu-copy.Dockerfile](./dockerfiles/ubuntu-copy.Dockerfile):
 
 ```Dockerfile
 FROM node:16.14.2-bullseye-slim as node
 FROM ubuntu:focal-20220404 as base
-COPY --from=node /usr/local/include/ /usr/local/include/
-COPY --from=node /usr/local/lib/ /usr/local/lib/
-COPY --from=node /usr/local/bin/ /usr/local/bin/
+COPY --from=node /usr/local/ /usr/local/
 # this ensures we fix simlinks for npx, Yarn, and PnPm
 RUN corepack disable && corepack enable
 ENTRYPOINT ["/usr/local/bin/node"]
@@ -162,17 +162,19 @@ ENTRYPOINT ["/usr/local/bin/node"]
 
 Note, if you don't like this COPY method, and feel it's a bit hacky, you could also just download the Node.js distros from nodejs.org and copy the binaries and libraries into your image. This is what the [official Node.js slim image does](https://github.com/nodejs/docker-node/blob/6e8f32de3f620833e563e9f2b427d50055783801/16/bullseye-slim/Dockerfile), but it's a bit more complex then my example above that just copies from one official image to another.
 
+One negative here. Most CVE scanners use package lists to determine if a image or system is vunerable. When we COPY in binaries and libraries, those aren't tracked by package systems, so they won't show up on CVE scans. The workaround is to also scan the FROM image that you COPY Node.js from.
+
 ### Using distroless
 
-I consider this a more advanced solution, because it doesn't include a shell or any utilities like package managers. A distroless image is something you COPY your app directory tree into as the last Dockerfile stage. It's meant to keep the image at an absolute minimum, and has the low CVE count to match.
+I consider this a more advanced solution, because it doesn't include a shell or any utilities like package managers. A distroless image is something you `COPY` your app directory tree into as the last Dockerfile stage. It's meant to keep the image at an absolute minimum, and has the low CVE count to match.
 
-**It cuts the base image file count to 1% of the others, which is amazing**, but it doesn't lesson the CVEs compared to Ubuntu and only saves us 60MB over ubuntu+node. It also isn't usable in dev or test stages because they often need a shell and package manager.
+> **It cuts the base image file count to 1% of the others, which is amazing**, but it doesn't lesson the CVEs compared to Ubuntu and only saves us 60MB over ubuntu+node. It also isn't usable in dev or test stages because they often need a shell and package manager.
 
 Also, and I can't believe this is an issue, but the distroless images can't easily be pinned to a specific version. It can only be pinned to the Major version, like `gcr.io/distroless/nodejs:16`. So those of us who want determinatic builds, can't use the version tag. A determinstic build would mean that every component is pinned to the exact version and if we built the image two times, a month apart, that nothing should be different. Now, distroless can be determinastic if you pin the sha256 hash of the image, not the version. But each time they ship a image update, the `16` tag is reused and there's no way to go back and see what hashes match old versions (without your own manual tracking), so this isn't good.
 
 So, while I think the ubuntu+node solution is less secure than distroless in theory, the CVE improvement in distroless just isn't there (today) to justify this extra effort of using it. I could be convinced otherwise though, so here's how I would use it:
 
-#### The better distroless setup
+### The better distroless setup?
 
 My recommended usage usage is to set `node:*-slim` everywhere execpt the final production stage, where you `COPY --chown=1000:1000 /app` to distroless... AND you also pin to the sha256 hash of your specific distroless image, then I think that's a reasonable solution. If you're tracking both images well, you can be sure that your distroless is using the same base Debian that your official `node:*-slim` image is. That's ideal, then any dev/test OS (apt) libraries will be very close or identical.
 
@@ -228,7 +230,7 @@ COPY --chown=node:node . .
 
 ProTip: If you need to run commands/shells in the container as root, add `--user=root` to your Docker commands.
 
-### Proper Node.js startup: tini
+### Proper Node.js startup: `tini`
 
 When I'm writing production-quality Dockerfiles for programming languages, I usually add `tini` to the ENTRYPOINT. The [tini project](https://github.com/krallin/tini) is a simple, lightweight, and portable init process that can be used to start a Node.js process, and more importantly, it properly handles Linux Kernel signals, and reaps any [zombie processes](https://en.wikipedia.org/wiki/Zombie_process) that get lost in the suffle.
 
