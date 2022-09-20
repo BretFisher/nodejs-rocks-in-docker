@@ -209,7 +209,7 @@ If so it should have at least `.git` and `node_modules` in it, to avoid unnecess
 
 In the `base` stage above, you'll want to copy in your package files and then only install production dependencies. Use npm's `ci` command that will only reference the lock file for which exact versions to install. Apparently it's faster than `npm install`.
 
-Then you'll install `devDependencies` in a future stage, but `ci` doesn't support dev-only dependency install, so you'll need to use `npm install --only=development` in the `dev` stage.
+Then you'll install `devDependencies` in a future stage, but `ci` doesn't support dev-only dependency install, so you'll need to use `npm install` in the `dev` stage.
 
 ### Change user to `USER node`
 

@@ -18,7 +18,7 @@ RUN npm ci --only=production && npm cache clean --force
 FROM base as dev
 ENV NODE_ENV=development
 ENV PATH=/app/node_modules/.bin:$PATH
-RUN npm install --only=development && npm cache clean --force
+RUN npm install && npm cache clean --force
 CMD ["nodemon", "./bin/www", "--inspect=0.0.0.0:9229"]
 
 FROM base as source

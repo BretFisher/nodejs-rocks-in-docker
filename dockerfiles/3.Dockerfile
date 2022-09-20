@@ -20,7 +20,7 @@ CMD ["node", "./bin/www"]
 FROM base as dev
 ENV NODE_ENV=development
 ENV PATH=/app/node_modules/.bin:$PATH
-RUN npm install --only=development
+RUN npm install
 CMD ["nodemon", "./bin/www", "--inspect=0.0.0.0:9229"]
 
 # prod stage
