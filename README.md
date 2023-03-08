@@ -1,6 +1,6 @@
 # Node.js Rocks in Docker
 
-> My DockerCon 2022 Talk, which is an update of my DockerCon 2019 talk "Node.js Rocks in Docker and DevOps"
+> My DockerCon 2022 Talk, which is an update of my [DockerCon 2019 talk](https://www.youtube.com/watch?v=Zgx0o8QjJk4) "Node.js Rocks in Docker and DevOps"
 
 Two options: Watch [the video below](https://www.youtube.com/watch?v=Z0lpNSC1KbM) (28 minutes) or read the details in this README. They complement each other.
 
@@ -266,7 +266,7 @@ Note, if you're using a special prod image like distroless, the `prod` stage is 
 
 ### Adding test, lint, and auditing stages
 
-In my DockerCon 2019 version of this talk, I showed off even more stages for running `npm test`, `npm lint`, `npm audit` and more. I no longer recommend this "inside the build" method, but it's still possible. It just depends on if you already have an automation platform.
+In my [DockerCon 2019 version](https://www.youtube.com/watch?v=Zgx0o8QjJk4) of this talk, I showed off even more stages for running `npm test`, `npm lint`, `npm audit` and more. I no longer recommend this "inside the build" method, but it's still possible. It just depends on if you already have an automation platform.
 
 > I don't recommend running tests/lint/audit *inside* the docker build because we have better automation platforms that are easier to troubleshoot, have better logging, and likely already have tools to test/lint/audit built-in.
 
