@@ -1,8 +1,8 @@
 ###
 ## Distroless in Prod. Multi-stage dev/test/prod with distroless
 ###
-FROM gcr.io/distroless/nodejs@sha256:794e26246770ff28d285d7f800ce1982883cf4105662845689efa33f04ec4340 as distroless
-FROM node:16-bullseye-slim as base
+FROM gcr.io/distroless/nodejs20-debian12:latest@sha256:6499c05db574451eeddda4d3ddb374ac1aba412d6b2f5d215cc5e23c40c0e4d3 as distroless
+FROM node:20-slim as base
 ENV NODE_ENV=production
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \

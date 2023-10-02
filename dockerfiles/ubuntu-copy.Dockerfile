@@ -2,8 +2,8 @@
 ## ubuntu base with nodejs coppied in from official image, for a more secure base
 ###
 #cache our node version for installing later
-FROM node:16.14.2-slim as node
-FROM ubuntu:focal-20220404 as base
+FROM node:20.7-slim as node
+FROM ubuntu:jammy-20230816 as base
 
 # replace npm in CMD with tini for better kernel signal handling
 # You may also need development tools to build native npm addons:

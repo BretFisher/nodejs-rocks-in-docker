@@ -1,10 +1,10 @@
 ###
 ## ubuntu base with nodejs deb package, for a more secure base
 ###
-FROM ubuntu:focal-20220404 as base
+FROM ubuntu:jammy-20230816 as base
 
 # version of Node.js we will install later
-ENV NODE_VERSION=16.14.2
+ENV NODE_MAJOR=20
 
 # replace npm in CMD with tini for better kernel signal handling
 RUN apt-get update \
@@ -23,16 +23,19 @@ RUN groupadd --gid 1000 node \
     && mkdir /app \
     && chown -R node:node /app
 
-# get full list of packages at https://deb.nodesource.com/node_16.x/pool/main/n/nodejs/
+# get full list of packages at https://deb.nodesource.com/node_18.x/pool/main/n/nodejs/
 # this basic TARGETARCH design only works on amd64 and arm64 builds.
 # for more on multi-platform builds, see https://github.com/BretFisher/multi-platform-docker-build
 ARG TARGETARCH
 RUN apt-get -qq update \
-  && apt-get -qq install -y ca-certificates wget --no-install-recommends \
-  && wget -O nodejs.deb -qSL https://deb.nodesource.com/node_16.x/pool/main/n/nodejs/nodejs_${NODE_VERSION}-deb-1nodesource1_${TARGETARCH}.deb \
-  && apt-get -qq install -y ./nodejs.deb --no-install-recommends \
-  && apt-get -qq remove wget \
-  && rm nodejs.deb \
+  && apt-get -qq install -y ca-certificates curl gnupg \
+  && mkdir -p /etc/apt/keyrings \
+  && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+  && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
+  && apt-get update \
+  && apt-get -qq install -y nodejs --no-install-recommends \
+  && apt-get -qq remove curl \
+  && apt-get -qq autoremove -y \
   && rm -rf /var/lib/apt/lists/* \
   && which npm
 

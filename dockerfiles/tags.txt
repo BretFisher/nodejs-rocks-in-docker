@@ -1,0 +1,14 @@
+node:20
+node:20-slim
+node:20-alpine
+node:18
+node:18-slim
+node:18-alpine
+debian:12
+debian:12-slim
+ubuntu:22.04
+bretfisher/node:ubuntu-22.04-nodesource18
+bretfisher/node:ubuntu-22.04-nodesource20
+bretfisher/node:ubuntu-22.04-node20-copy
+gcr.io/distroless/nodejs20-debian12
+cgr.dev/chainguard/node:latest
