@@ -91,12 +91,14 @@ Here's a compairison of the resonable options I've come up with. Most I've tried
 | `ubuntu:22.04+nodesource18` (apt package)  | 0/2/25/23 | 0/3/25/22         | 0/3/32/39    | 0/3/32/35   | 263MB      |
 | `ubuntu:22.04+nodesource20` (apt package)  | 0/2/25/23 | 0/3/25/22         | 0/3/32/39    | 0/3/32/35   | 268MB      |
 | `ubuntu:22.04+node:20` (image copy)        | 0/0/3/11  | 0/0/2/9           | 0/0/6/15     | 0/0/6/12    | 231MB      |
-| `gcr.io/distroless/nodejs20-debian12` [^2] | 1/5/2/18  | 0/0/0/0           | 1/7/10/12    | 1/7/9/0     | 181MB      |
+| `gcr.io/distroless/nodejs20-debian12` [^2] | 1/5/2/18  | 0/0/0/0 [^3]      | 1/7/10/12    | 1/7/9/0     | 181MB      |
 | `cgr.dev/chainguard/node:latest` (v18)     | 0/0/0/0   | 0/0/0/0           | 0/0/0/0      | 0/0/0/0     | 108MB      |
 
 [^1]: 1. Alpine's [musl libc](https://musl.libc.org/) is only Experimant support by the Node.js project, and I only recommend Tier 1 support for production servers. 2. While Alpine-based images have image tags for versioning, apk packages you need inside them can't be relelablly versioned over time (eventually packages are pulled from Alpine's apk and builds will fail.)
 
 [^2]: 1. Distroless was behind and only had Node.js 20.6.1. 2. Distroless can only be pinned (in image tag) to the major Node.js version. That is disapointing. You can technically use the sha256 hash of any image to pin for determinstic builds, but the process for doing so (and determining what hashes are which verions later) is far from ideal. 3. It also doesn't have a package manager and can only be the last stage in build.
+
+[^3]: Docker is aware that Scout is not scanning distroless correctly.
 
 ### Comparison highlights
 
