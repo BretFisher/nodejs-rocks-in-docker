@@ -22,6 +22,7 @@ Also, here's [my other example repositories](https://github.com/bretfisher/bretf
   - [TL;DR](#tldr)
   - [General goals of a Node.js image](#general-goals-of-a-nodejs-image)
   - [Node.js base image comparison stats, September 25th, 2023](#nodejs-base-image-comparison-stats-september-25th-2023)
+  - [My recommended (v18)](#my-recommended-v18)
   - [Comparison highlights](#comparison-highlights)
   - [Ruling out Alpine](#ruling-out-alpine)
   - [Ruling out `node:latest` or `node:lts`](#ruling-out-nodelatest-or-nodelts)
@@ -79,18 +80,15 @@ Here's a compairison of the resonable options I've come up with. Most I've tried
 
 | Image Name                                 | Snyk CVEs | Docker Scout CVEs | Trivy CVEs   | Grype CVEs  | Image Size |
 | ------------------------------------------ | --------- | ----------------- | ------------ | ----------- | ---------- |
-| `node:20` (current)                        | 0/0/2/159 | 0/0/3/82          | 3/58/215/468 | 3/57/198/30 | 1,047MB    |
-| `node:20-slim`                             | 0/0/1/31  | 0/0/0/17          | 0/3/7/50     | 0/3/5/3     | 175MB      |
-| `node:20-alpine`[^1]                       | 0/0/0/0   | 0/0/0/0           | 0/0/0/0      | 0/0/0/0     | 180MB      |
 | `node:18` (lts)                            | 0/0/2/159 | 0/0/3/82          | 3/58/215/468 | 3/57/198/30 | 1,042MB    |
 | `node:18-slim`                             | 0/0/1/31  | 0/0/0/17          | 0/3/7/50     | 0/3/5/3     | 264MB      |
-| `node:18-alpine`                           | 0/0/0/0   | 0/0/0/0           | 0/0/0/0      | 0/0/0/0     | 175MB      |
+| `node:18-alpine` [^1]                      | 0/0/0/0   | 0/0/0/0           | 0/0/0/0      | 0/0/0/0     | 175MB      |
 | `debian:12` (NO node)                      | 0/0/1/31  | 0/0/0/17          | 0/3/7/50     | 0/3/5/3     | 139MB      |
 | `debian:12-slim` (NO node)                 | 0/0/1/31  | 0/0/0/17          | 0/3/7/50     | 0/3/5/3     | 97MB       |
 | `ubuntu:22.04` (NO node)                   | 0/0/3/11  | 0/0/2/9           | 0/0/6/15     | 0/0/6/12    | 69MB       |
 | `ubuntu:22.04+nodesource18` (apt package)  | 0/2/25/23 | 0/3/25/22         | 0/3/32/39    | 0/3/32/35   | 263MB      |
-| `ubuntu:22.04+nodesource20` (apt package)  | 0/2/25/23 | 0/3/25/22         | 0/3/32/39    | 0/3/32/35   | 268MB      |
-| `ubuntu:22.04+node:20` (image copy)        | 0/0/3/11  | 0/0/2/9           | 0/0/6/15     | 0/0/6/12    | 231MB      |
+| `ubuntu:22.04+node:18` (image copy)        | 0/0/3/11  | 0/0/2/9           | 0/0/6/15     | 0/0/6/12    | 225MB      |
+| `ubuntu:23.04+node:18` (image copy)        | 0/0/2/6   | 0/0/0/0           | 0/0/3/12     | 0/0/3/6     | 248MB      |
 | `gcr.io/distroless/nodejs20-debian12` [^2] | 1/5/2/18  | 0/0/0/0 [^3]      | 1/7/10/12    | 1/7/9/0     | 181MB      |
 | `cgr.dev/chainguard/node:latest` (v18)     | 0/0/0/0   | 0/0/0/0           | 0/0/0/0      | 0/0/0/0     | 108MB      |
 
@@ -99,6 +97,13 @@ Here's a compairison of the resonable options I've come up with. Most I've tried
 [^2]: 1. Distroless was behind and only had Node.js 20.6.1. 2. Distroless can only be pinned (in image tag) to the major Node.js version. That is disapointing. You can technically use the sha256 hash of any image to pin for determinstic builds, but the process for doing so (and determining what hashes are which verions later) is far from ideal. 3. It also doesn't have a package manager and can only be the last stage in build.
 
 [^3]: Docker is aware that Scout is not scanning distroless correctly.
+
+### My recommended (v18)
+| Image Name                                 | Snyk CVEs | Docker Scout CVEs | Trivy CVEs   | Grype CVEs  | Image Size |
+| ------------------------------------------ | --------- | ----------------- | ------------ | ----------- | ---------- |
+| `node:18-slim`                             | 0/0/1/31  | 0/0/0/17          | 0/3/7/50     | 0/3/5/3     | 264MB      |
+| `ubuntu:23.04+node:18` (image copy)        | 0/0/2/6   | 0/0/0/0           | 0/0/3/12     | 0/0/3/6     | 248MB      |
+| `cgr.dev/chainguard/node:latest` (v18)     | 0/0/0/0   | 0/0/0/0           | 0/0/0/0      | 0/0/0/0     | 108MB      |
 
 ### Comparison highlights
 

@@ -13,17 +13,27 @@ services:
       context: .
       # build to the stage named dev
       target: dev
-    volumes:
-      - .:/app
+    # Not needed when `develop: watch` is used
+    # volumes:
+    #   - .:/app
     ports:
       # use docker compose ps to see which host port is used
       - "3000"
     depends_on:
       db:
         condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: ./
+          target: /app
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: package-lock.json
 
   db:
-    image: postgres
+    image: postgres:alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

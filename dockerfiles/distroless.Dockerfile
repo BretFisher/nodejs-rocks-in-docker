@@ -24,14 +24,6 @@ CMD ["nodemon", "./bin/www", "--inspect=0.0.0.0:9229"]
 FROM base as source
 COPY --chown=node:node . .
 
-FROM source as test
-ENV NODE_ENV=development
-ENV PATH=/app/node_modules/.bin:$PATH
-COPY --from=dev /app/node_modules /app/node_modules
-RUN npx eslint .
-RUN npm test
-CMD ["npm", "run", "test"]
-
 # switch to distroless for prod
 # use version tags for always building with latest 
 #    (more risky for stability, but likely more secure)
