@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 ###
 ## Example: The most basic, CORRECT, Dockerfile for Node.js
 ###

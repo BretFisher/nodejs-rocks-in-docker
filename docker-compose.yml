@@ -9,7 +9,7 @@
 services:
   node:
     build:
-      dockerfile: dockerfiles/5.Dockerfile
+      dockerfile: dockerfiles/3.Dockerfile
       context: .
       # build to the stage named dev
       target: dev

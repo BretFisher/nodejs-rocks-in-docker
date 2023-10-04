@@ -1,6 +1,9 @@
+# syntax=docker/dockerfile:1
+
 ###
 ## Distroless in Prod. Multi-stage dev/test/prod with distroless
 ###
+
 FROM gcr.io/distroless/nodejs20-debian12:latest@sha256:6499c05db574451eeddda4d3ddb374ac1aba412d6b2f5d215cc5e23c40c0e4d3 as distroless
 FROM node:20-slim as base
 ENV NODE_ENV=production

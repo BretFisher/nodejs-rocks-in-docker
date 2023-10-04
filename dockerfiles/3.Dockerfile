@@ -1,6 +1,9 @@
+# syntax=docker/dockerfile:1
+
 ###
 ## Adding stages for dev and prod
 ###
+
 FROM node:20-bookworm-slim@sha256:8d26608b65edb3b0a0e1958a0a5a45209524c4df54bbe21a4ca53548bc97a3a5 as base
 ENV NODE_ENV=production
 ENV TINI_VERSION=v0.19.0

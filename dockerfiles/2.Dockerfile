@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 ###
 ## Example: run tini first, as PID 1
 ###
