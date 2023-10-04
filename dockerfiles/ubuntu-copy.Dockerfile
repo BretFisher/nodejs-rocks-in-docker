@@ -2,8 +2,9 @@
 ## ubuntu base with nodejs coppied in from official image, for a more secure base
 ###
 #cache our node version for installing later
-FROM node:16.14.2-slim as node
-FROM ubuntu:focal-20220404 as base
+#FROM node:20.7-slim as node
+FROM node:18.18-slim as node
+FROM ubuntu:lunar-20230816 as base
 
 # replace npm in CMD with tini for better kernel signal handling
 # You may also need development tools to build native npm addons:
@@ -21,18 +22,16 @@ COPY --from=node /usr/local/lib/ /usr/local/lib/
 COPY --from=node /usr/local/bin/ /usr/local/bin/
 RUN corepack disable && corepack enable
 
-# create node user and group, then create app dir
-RUN groupadd --gid 1000 node \
-    && useradd --uid 1000 --gid node --shell /bin/bash --create-home node \
-    && mkdir /app \
-    && chown -R node:node /app
+# create node user and group
+RUN groupadd --gid 1001 node \
+    && useradd --uid 1001 --gid node --shell /bin/bash --create-home node
 
 # you'll likely need more stages for dev/test, but here's our basic prod layer with source code
 FROM base as prod
 EXPOSE 3000
-WORKDIR /app
 USER node
-COPY --chown=node:node package*.json yarn*.lock ./
-RUN npm ci --only=production && npm cache clean --force
+WORKDIR /app
+COPY --chown=node:node package*.json ./
+RUN npm ci && npm cache clean --force
 COPY --chown=node:node . .
 CMD ["node", "./bin/www"]

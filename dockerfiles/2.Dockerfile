@@ -1,29 +1,29 @@
-FROM node:16-bullseye-slim
+# syntax=docker/dockerfile:1
+
 ###
 ## Example: run tini first, as PID 1
 ###
 
+FROM node:20-bookworm-slim@sha256:8d26608b65edb3b0a0e1958a0a5a45209524c4df54bbe21a4ca53548bc97a3a5
+
 # replace npm in CMD with tini for better kernel signal handling
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-    tini \
-    && rm -rf /var/lib/apt/lists/*
+ENV NODE_ENV=production
+ENV TINI_VERSION=v0.19.0
+ADD --chmod=755 https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /usr/local/bin/tini
+
 # set entrypoint to always run commands with tini
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENTRYPOINT ["/usr/local/bin/tini", "--"]
 
 EXPOSE 3000
 
-RUN mkdir /app && chown -R node:node /app
+USER node
 
 WORKDIR /app
 
-USER node
+COPY --chown=node:node package*.json ./
 
-COPY --chown=node:node package*.json yarn*.lock ./
-
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --chown=node:node . .
 
-# change command to run node directly
 CMD ["node", "./bin/www"]
