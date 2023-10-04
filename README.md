@@ -98,7 +98,7 @@ Here's a compairison of the resonable options I've come up with. Most I've tried
 
 [^3]: Docker is aware that Scout is not scanning distroless correctly.
 
-[v4]: Chainguard `latest` tag is the lts version. Chainguard public images don't let you pin to version tags, so pin to the sha hash to stay determinstic. Chainguard has [paid plans that give access to version tags](https://www.chainguard.dev/unchained/important-updates-for-chainguard-images-public-catalog-users).
+[^4]: Chainguard `latest` tag is the lts version. Chainguard public images don't let you pin to version tags, so pin to the sha hash to stay determinstic. Chainguard has [paid plans that give access to version tags](https://www.chainguard.dev/unchained/important-updates-for-chainguard-images-public-catalog-users).
 
 ### My recommended (v18)
 | Image Name                                 | Snyk CVEs | Docker Scout CVEs | Trivy CVEs   | Grype CVEs  | Image Size |
