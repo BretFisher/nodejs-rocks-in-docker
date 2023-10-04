@@ -12,7 +12,7 @@ EXPOSE 3000
 USER node
 WORKDIR /app
 COPY --chown=node:node package*.json ./
-RUN npm ci && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 ENV PATH=/app/node_modules/.bin:$PATH
 
 # dev stage

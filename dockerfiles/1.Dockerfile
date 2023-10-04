@@ -18,7 +18,7 @@ WORKDIR /app
 COPY --chown=node:node package*.json ./
 
 # use ci to only install packages from lock files
-RUN npm ci && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # copy files with correct permissions
 COPY --chown=node:node . .
