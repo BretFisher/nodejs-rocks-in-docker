@@ -1,10 +1,10 @@
 # Node.js Rocks in Docker
 
-> My DockerCon 2022 Talk, which is an update of my [DockerCon 2019 talk](https://www.youtube.com/watch?v=Zgx0o8QjJk4) "Node.js Rocks in Docker and DevOps"
+> My DockerCon 2023 talk, which is an update of my DockerCon 2022 talk, which is an update of my DockerCon 2019 talk "Node.js Rocks in Docker and DevOps"
 
-Two options: Watch [the video below](https://www.youtube.com/watch?v=Z0lpNSC1KbM) (28 minutes) or read the details in this README. They complement each other.
-
-[![On YouTube: Node.js Rocks in Docker](https://img.youtube.com/vi/Z0lpNSC1KbM/0.jpg)](https://www.youtube.com/watch?v=Z0lpNSC1KbM)
+- [DockerCon 2023 talk on YouTube](https://www.youtube.com/watch?v=GEPW008G250)
+- [DockerCon 2022 talk on YouTube](https://www.youtube.com/watch?v=Z0lpNSC1KbM)
+- [DockerCon 2019 talk on YouTube](https://www.youtube.com/watch?v=Zgx0o8QjJk4)
 
 **Want more? [Get my Docker Mastery for Node.js course with a coupon](https://www.bretfisher.com/docker-mastery-for-nodejs/): 9 hours of video to help a Node.js developer use all the best Docker features.**
 
